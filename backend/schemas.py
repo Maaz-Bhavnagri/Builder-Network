@@ -1,0 +1,48 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import datetime
+
+class UserBase(BaseModel):
+    clerk_id: str
+    email: EmailStr
+    name: Optional[str] = None
+    skills: Optional[List[str]] = []
+    bio: Optional[str] = None
+
+class UserCreate(UserBase):
+    pass
+
+class UserResponse(UserBase):
+    id: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProjectBase(BaseModel):
+    title: str
+    description: str
+    tags: Optional[List[str]] = []
+    stage: str
+
+class ProjectCreate(ProjectBase):
+    pass
+
+class ProjectResponse(ProjectBase):
+    id: str
+    owner_id: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProjectDetailResponse(ProjectResponse):
+    owner: UserResponse
+
+class ProjectMatchResponse(BaseModel):
+    project: ProjectResponse
+    score: int
+
+class UserMatchResponse(BaseModel):
+    user: UserResponse
+    score: int
