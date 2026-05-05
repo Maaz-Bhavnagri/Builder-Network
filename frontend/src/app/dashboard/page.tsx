@@ -91,7 +91,15 @@ export default function Dashboard() {
         <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-100">
           <div className="flex justify-between items-center p-6 border-b border-gray-100">
             <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-            <UserButton afterSignOutUrl="/" />
+            <div className="flex items-center gap-3">
+              <Link
+                href="/connections"
+                className="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+              >
+                My Connections
+              </Link>
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </div>
           
           <div className="p-6">

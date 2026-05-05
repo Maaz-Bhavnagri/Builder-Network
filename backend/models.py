@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, UniqueConstraint
 import datetime
 from database import Base
 import uuid
@@ -29,3 +29,16 @@ class Project(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     owner = relationship("User", back_populates="projects")
+
+class Connection(Base):
+    __tablename__ = "connections"
+    __table_args__ = (UniqueConstraint("sender_id", "receiver_id", name="uq_connection"),)
+
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    sender_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    receiver_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String, nullable=False, default="pending")  # pending | accepted | rejected
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    sender = relationship("User", foreign_keys=[sender_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])

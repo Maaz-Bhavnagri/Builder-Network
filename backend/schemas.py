@@ -46,3 +46,24 @@ class ProjectMatchResponse(BaseModel):
 class UserMatchResponse(BaseModel):
     user: UserResponse
     score: int
+
+# ---- Connection Schemas ----
+
+class ConnectionRequest(BaseModel):
+    receiver_id: str
+
+class ConnectionRespond(BaseModel):
+    connection_id: str
+    action: str  # "accept" or "reject"
+
+class ConnectionResponse(BaseModel):
+    id: str
+    sender_id: str
+    receiver_id: str
+    status: str
+    created_at: datetime
+    sender: UserResponse
+    receiver: UserResponse
+
+    class Config:
+        from_attributes = True

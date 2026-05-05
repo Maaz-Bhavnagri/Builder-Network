@@ -12,28 +12,60 @@ export default function ProjectDetails({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Connection state
+  const [connStatus, setConnStatus] = useState<string>("none"); // none | pending | accepted
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
   useEffect(() => {
-    async function fetchProject() {
+    async function fetchData() {
       if (!isLoaded || !isSignedIn || !user) return;
 
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const response = await fetch(`${apiUrl}/projects/${projectId}`, {
+        // Fetch project
+        const projRes = await fetch(`${apiUrl}/projects/${projectId}`, {
           method: "GET",
           headers: {
             "x-clerk-user-id": user.id,
           },
         });
 
-        if (!response.ok) {
-          if (response.status === 404) {
+        if (!projRes.ok) {
+          if (projRes.status === 404) {
             throw new Error("Project not found");
           }
           throw new Error("Failed to fetch project details");
         }
 
-        const data = await response.json();
-        setProject(data);
+        const projectData = await projRes.json();
+        setProject(projectData);
+
+        // Fetch connection status if not owner
+        if (projectData.owner_id !== user.id) {
+          const [connRes, sentRes] = await Promise.all([
+            fetch(`${apiUrl}/connections`, { headers: { "x-clerk-user-id": user.id } }),
+            fetch(`${apiUrl}/connections/sent`, { headers: { "x-clerk-user-id": user.id } }),
+          ]);
+
+          if (connRes.ok && sentRes.ok) {
+            const acceptedConns = await connRes.json();
+            const sentReqs = await sentRes.json();
+
+            const isAccepted = acceptedConns.some((c: any) => 
+              c.sender_id === projectData.owner_id || c.receiver_id === projectData.owner_id
+            );
+            
+            if (isAccepted) {
+              setConnStatus("accepted");
+            } else {
+              const isPending = sentReqs.some((c: any) => c.receiver_id === projectData.owner_id);
+              if (isPending) {
+                setConnStatus("pending");
+              }
+            }
+          }
+        }
       } catch (err: any) {
         console.error(err);
         setError(err.message);
@@ -42,8 +74,29 @@ export default function ProjectDetails({ params }: { params: Promise<{ id: strin
       }
     }
 
-    fetchProject();
+    fetchData();
   }, [isLoaded, isSignedIn, user, projectId]);
+
+  async function handleConnect() {
+    if (!user || !project) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/connections/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-clerk-user-id": user.id },
+        body: JSON.stringify({ receiver_id: project.owner_id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to send request");
+      }
+      setConnStatus("pending");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  }
 
   if (!isLoaded || loading) {
     return (
@@ -118,7 +171,26 @@ export default function ProjectDetails({ params }: { params: Promise<{ id: strin
           
           {project.owner && (
             <div className="bg-gray-50 p-8">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">About the Builder</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">About the Builder</h3>
+                {!isOwner && (
+                  <div>
+                    {connStatus === "accepted" ? (
+                      <span className="text-sm font-medium text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">✓ Connected</span>
+                    ) : connStatus === "pending" ? (
+                      <span className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">⏳ Pending</span>
+                    ) : (
+                      <button
+                        onClick={handleConnect}
+                        disabled={actionLoading}
+                        className="text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 px-4 py-2 rounded-lg hover:bg-indigo-100 disabled:opacity-50 transition-colors"
+                      >
+                        {actionLoading ? "Sending..." : "Connect"}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
                   {(project.owner.name || "?")[0].toUpperCase()}
@@ -148,3 +220,4 @@ export default function ProjectDetails({ params }: { params: Promise<{ id: strin
     </div>
   );
 }
+
