@@ -10,6 +10,7 @@ export default function ChatPage() {
   const searchParams = useSearchParams();
   const initialUserId = searchParams.get("user_id");
 
+  const [dbUser, setDbUser] = useState<any>(null);
   const [conversations, setConversations] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -29,9 +30,18 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-    async function fetchConversations() {
+    async function fetchData() {
       if (!isLoaded || !isSignedIn || !user) return;
       try {
+        // Fetch current DB user to get their UUID
+        const meRes = await fetch(`${apiUrl}/me`, {
+          headers: { "x-clerk-user-id": user.id }
+        });
+        if (!meRes.ok) throw new Error("Failed to fetch user profile");
+        const meData = await meRes.json();
+        setDbUser(meData);
+
+        // Fetch conversations
         const res = await fetch(`${apiUrl}/conversations`, {
           headers: { "x-clerk-user-id": user.id }
         });
@@ -44,9 +54,6 @@ export default function ChatPage() {
           const conv = data.find((c: any) => c.user.id === initialUserId);
           if (conv) {
             setSelectedUser(conv.user);
-          } else {
-            // If not in conversations, they might be a new connection with no messages yet
-            // Fetch connection to verify? For now, we'll just try to find them in data or wait.
           }
         }
       } catch (err: any) {
@@ -55,7 +62,7 @@ export default function ChatPage() {
         setLoading(false);
       }
     }
-    fetchConversations();
+    fetchData();
   }, [isLoaded, isSignedIn, user, initialUserId]);
 
   useEffect(() => {
@@ -117,7 +124,7 @@ export default function ChatPage() {
     );
   }
 
-  if (!isSignedIn) return null;
+  if (!isSignedIn || !dbUser) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col h-screen">
@@ -197,32 +204,35 @@ export default function ChatPage() {
                     <p className="text-sm">No messages yet. Start the conversation!</p>
                   </div>
                 ) : (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col ${msg.sender_id === user.id ? 'items-end' : 'items-start'}`}
-                    >
-                      <span className="text-[10px] text-gray-500 mb-1 px-1 font-medium">
-                        {msg.sender_id === user.id ? "Me" : (selectedUser.name || "Anonymous")}
-                      </span>
+                  messages.map((msg) => {
+                    const isMe = msg.sender_id === dbUser.id;
+                    return (
                       <div
-                        className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
-                          msg.sender_id === user.id
-                            ? 'bg-indigo-600 text-white rounded-br-none'
-                            : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                        }`}
+                        key={msg.id}
+                        className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                       >
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                        <p
-                          className={`text-[10px] mt-1 ${
-                            msg.sender_id === user.id ? 'text-indigo-200' : 'text-gray-400'
+                        <span className="text-[10px] text-gray-500 mb-1 px-1 font-medium">
+                          {isMe ? "Me" : (selectedUser.name || "Anonymous")}
+                        </span>
+                        <div
+                          className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
+                            isMe
+                              ? 'bg-green-600 text-white rounded-br-none'
+                              : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
                           }`}
                         >
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          <p
+                            className={`text-[10px] mt-1 ${
+                              isMe ? 'text-green-200' : 'text-gray-400'
+                            }`}
+                          >
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -261,3 +271,4 @@ export default function ChatPage() {
     </div>
   );
 }
+
