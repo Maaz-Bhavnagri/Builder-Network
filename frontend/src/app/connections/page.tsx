@@ -159,6 +159,14 @@ export default function ConnectionsPage() {
                             ))}
                           </div>
                         )}
+                        <div className="mt-4">
+                          <Link 
+                            href={`/chat?user_id=${other.id}`}
+                            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-md transition-colors"
+                          >
+                            Message
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

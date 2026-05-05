@@ -67,3 +67,25 @@ class ConnectionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ---- Chat Schemas ----
+
+class MessageCreate(BaseModel):
+    receiver_id: str
+    content: str
+
+class MessageResponse(BaseModel):
+    id: str
+    sender_id: str
+    receiver_id: str
+    content: str
+    created_at: datetime
+    is_read: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class ConversationSummary(BaseModel):
+    user: UserResponse
+    last_message: Optional[MessageResponse] = None
+    unread_count: int = 0
