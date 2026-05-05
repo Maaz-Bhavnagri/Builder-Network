@@ -20,10 +20,9 @@ node_modules/
 # Production build
 /build
 
-# Environment variables (contains secrets)
+# Environment variables (contains secrets - NEVER commit these)
 .env
 .env.*
-!.env.example
 
 # Vercel
 .vercel

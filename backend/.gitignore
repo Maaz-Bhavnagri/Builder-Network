@@ -12,10 +12,9 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Environment variables (contains secrets)
+# Environment variables (contains secrets - NEVER commit these)
 .env
 .env.*
-!.env.example
 
 # Distribution / packaging
 dist/
