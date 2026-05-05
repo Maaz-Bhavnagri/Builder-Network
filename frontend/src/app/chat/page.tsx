@@ -200,8 +200,11 @@ export default function ChatPage() {
                   messages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
+                      className={`flex flex-col ${msg.sender_id === user.id ? 'items-end' : 'items-start'}`}
                     >
+                      <span className="text-[10px] text-gray-500 mb-1 px-1 font-medium">
+                        {msg.sender_id === user.id ? "Me" : (selectedUser.name || "Anonymous")}
+                      </span>
                       <div
                         className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
                           msg.sender_id === user.id
